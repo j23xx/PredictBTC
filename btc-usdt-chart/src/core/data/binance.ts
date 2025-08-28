@@ -16,8 +16,10 @@ export class BinanceDataAdapter implements MarketDataAdapter {
     limit: number = 1000
   ): Promise<Candle[]> {
     try {
-      console.log('🔄 Fetching historical data:', { symbol, interval, limit });
-      const url = `${this.baseUrl}/klines?symbol=${symbol.toUpperCase()}&interval=${interval}&limit=${limit}`;
+      const cleanSymbol = symbol.toUpperCase().trim();
+      console.log('🔄 Fetching historical data:', { cleanSymbol, interval, limit });
+      
+      const url = `${this.baseUrl}/klines?symbol=${cleanSymbol}&interval=${interval}&limit=${limit}`;
       console.log('📡 Request URL:', url);
       
       const response = await fetch(url, {
@@ -28,24 +30,31 @@ export class BinanceDataAdapter implements MarketDataAdapter {
       });
       
       if (!response.ok) {
-        console.error('❌ Binance API error:', response.status, response.statusText);
-        throw new Error(`Binance API error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('❌ Binance API error:', response.status, response.statusText, errorText);
+        throw new Error(`Binance API error: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       const data = await response.json();
+      
+      if (!Array.isArray(data)) {
+        console.error('❌ Invalid response format:', data);
+        return [];
+      }
+      
       console.log('📊 Received data points:', data.length);
       
-      if (!Array.isArray(data) || data.length === 0) {
+      if (data.length === 0) {
         console.warn('⚠️ No data received from Binance');
         return [];
       }
       
-      const candles = (data as any[]).map((item: any) => ({
-        t: item[0], // open time
-        o: parseFloat(item[1]), // open
-        h: parseFloat(item[2]), // high
-        l: parseFloat(item[3]), // low
-        c: parseFloat(item[4]), // close
+      const candles = data.map((item) => ({
+        t: item[0],           // open time (milliseconds)
+        o: parseFloat(item[1]), // open price
+        h: parseFloat(item[2]), // high price
+        l: parseFloat(item[3]), // low price
+        c: parseFloat(item[4]), // close price
         v: parseFloat(item[5]), // volume
       }));
       
