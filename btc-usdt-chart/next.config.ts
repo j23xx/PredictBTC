@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  // Use default Next.js configuration for Vercel
   trailingSlash: false,
-  skipTrailingSlashRedirect: false,
 };
 
 export default nextConfig;
