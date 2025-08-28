@@ -53,26 +53,30 @@ export default function TradingChart({ className = '' }: TradingChartProps) {
     chartRef.current = chart;
 
     // Create candlestick series
-    candlestickSeriesRef.current = (chart as any).addCandlestickSeries({
-      upColor: '#26a69a',
-      downColor: '#ef5350',
-      borderVisible: false,
-      wickUpColor: '#26a69a',
-      wickDownColor: '#ef5350',
-    });
+    try {
+      candlestickSeriesRef.current = (chart as any).addCandlestickSeries({
+        upColor: '#26a69a',
+        downColor: '#ef5350',
+        borderVisible: false,
+        wickUpColor: '#26a69a',
+        wickDownColor: '#ef5350',
+      });
 
-    // Create volume series
-    volumeSeriesRef.current = (chart as any).addHistogramSeries({
-      color: '#26a69a',
-      priceFormat: {
-        type: 'volume',
-      },
-      priceScaleId: '',
-      scaleMargins: {
-        top: 0.8,
-        bottom: 0,
-      },
-    } as any);
+      // Create volume series
+      volumeSeriesRef.current = (chart as any).addHistogramSeries({
+        color: '#26a69a',
+        priceFormat: {
+          type: 'volume',
+        },
+        priceScaleId: '',
+        scaleMargins: {
+          top: 0.8,
+          bottom: 0,
+        },
+      });
+    } catch (error) {
+      console.error('Error creating chart series:', error);
+    }
 
     return () => {
       chart.remove();
@@ -152,25 +156,29 @@ export default function TradingChart({ className = '' }: TradingChartProps) {
         if (!indicatorSeriesRef.current[seriesId]) {
           let series;
           
-          switch (overlay.seriesType) {
-            case 'line':
-              series = (chartRef.current as any)?.addLineSeries({
-                color: overlay.options?.color || '#2962FF',
-                lineWidth: overlay.options?.lineWidth || 2,
-              });
-              break;
-            case 'histogram':
-              series = (chartRef.current as any)?.addHistogramSeries({
-                color: overlay.options?.color || '#26a69a',
-              });
-              break;
-            case 'area':
-              series = (chartRef.current as any)?.addAreaSeries({
-                lineColor: overlay.options?.color || '#2962FF',
-                topColor: overlay.options?.color || '#2962FF',
-                bottomColor: 'rgba(41, 98, 255, 0.28)',
-              });
-              break;
+          try {
+            switch (overlay.seriesType) {
+              case 'line':
+                series = (chartRef.current as any)?.addLineSeries({
+                  color: overlay.options?.color || '#2962FF',
+                  lineWidth: overlay.options?.lineWidth || 2,
+                });
+                break;
+              case 'histogram':
+                series = (chartRef.current as any)?.addHistogramSeries({
+                  color: overlay.options?.color || '#26a69a',
+                });
+                break;
+              case 'area':
+                series = (chartRef.current as any)?.addAreaSeries({
+                  lineColor: overlay.options?.color || '#2962FF',
+                  topColor: overlay.options?.color || '#2962FF',
+                  bottomColor: 'rgba(41, 98, 255, 0.28)',
+                });
+                break;
+            }
+          } catch (error) {
+            console.error('Error creating indicator series:', error);
           }
 
           if (series) {
