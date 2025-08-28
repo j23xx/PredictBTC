@@ -86,10 +86,14 @@ export default function TradingChart({ className = '' }: TradingChartProps) {
   // Fetch historical data when timeframe changes
   useEffect(() => {
     const fetchData = async () => {
-      if (!candlestickSeriesRef.current || !volumeSeriesRef.current) return;
+      if (!candlestickSeriesRef.current || !volumeSeriesRef.current) {
+        console.log('Chart series not ready, waiting...');
+        return;
+      }
 
       setLoading(true);
       setError(null);
+      console.log('📊 Starting data fetch for:', { symbol, timeframe });
 
       try {
         const historicalCandles = await dataAdapter.fetchHistory(
@@ -98,7 +102,14 @@ export default function TradingChart({ className = '' }: TradingChartProps) {
           1000
         );
         
+        console.log('✅ Successfully fetched candles:', historicalCandles.length);
         setCandles(historicalCandles);
+
+        if (historicalCandles.length === 0) {
+          console.warn('⚠️ No candles returned from data adapter');
+          setError('No data available for selected timeframe');
+          return;
+        }
 
         const candlestickData = historicalCandles.map(candle => ({
           time: candle.t / 1000,
@@ -114,13 +125,15 @@ export default function TradingChart({ className = '' }: TradingChartProps) {
           color: candle.c >= candle.o ? '#26a69a' : '#ef5350',
         }));
 
+        console.log('📈 Setting chart data...');
         candlestickSeriesRef.current.setData(candlestickData);
         volumeSeriesRef.current.setData(volumeData);
 
         // Fit content
         chartRef.current?.timeScale().fitContent();
+        console.log('✅ Chart data updated successfully');
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('❌ Error fetching data:', error);
         setError(error instanceof Error ? error.message : 'Failed to fetch data');
       } finally {
         setLoading(false);
@@ -207,7 +220,12 @@ export default function TradingChart({ className = '' }: TradingChartProps) {
       symbol,
       timeframe,
       (candle) => {
-        if (!candlestickSeriesRef.current || !volumeSeriesRef.current) return;
+        if (!candlestickSeriesRef.current || !volumeSeriesRef.current) {
+          console.log('Chart series not ready for real-time update');
+          return;
+        }
+
+        console.log('📡 Real-time candle received:', candle);
 
         setCandles(prevCandles => {
           const newCandles = [...prevCandles];
@@ -238,6 +256,7 @@ export default function TradingChart({ className = '' }: TradingChartProps) {
             color: candle.c >= candle.o ? '#26a69a' : '#ef5350',
           };
 
+          console.log('🔄 Updating chart with real-time data:', chartData);
           if (existingIndex !== -1) {
             candlestickSeriesRef.current?.update(chartData);
             volumeSeriesRef.current?.update(volumeChartData);

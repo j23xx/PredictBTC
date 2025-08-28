@@ -16,17 +16,31 @@ export class BinanceDataAdapter implements MarketDataAdapter {
     limit: number = 1000
   ): Promise<Candle[]> {
     try {
-      const response = await fetch(
-        `${this.baseUrl}/klines?symbol=${symbol.toUpperCase()}&interval=${interval}&limit=${limit}`
-      );
+      console.log('🔄 Fetching historical data:', { symbol, interval, limit });
+      const url = `${this.baseUrl}/klines?symbol=${symbol.toUpperCase()}&interval=${interval}&limit=${limit}`;
+      console.log('📡 Request URL:', url);
+      
+      const response = await fetch(url, {
+        mode: 'cors',
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
       
       if (!response.ok) {
-        throw new Error(`Binance API error: ${response.status}`);
+        console.error('❌ Binance API error:', response.status, response.statusText);
+        throw new Error(`Binance API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('📊 Received data points:', data.length);
       
-      return (data as any[]).map((item: any) => ({
+      if (!Array.isArray(data) || data.length === 0) {
+        console.warn('⚠️ No data received from Binance');
+        return [];
+      }
+      
+      const candles = (data as any[]).map((item: any) => ({
         t: item[0], // open time
         o: parseFloat(item[1]), // open
         h: parseFloat(item[2]), // high
@@ -34,8 +48,11 @@ export class BinanceDataAdapter implements MarketDataAdapter {
         c: parseFloat(item[4]), // close
         v: parseFloat(item[5]), // volume
       }));
+      
+      console.log('✅ Processed candles:', candles.length);
+      return candles;
     } catch (error) {
-      console.error('Failed to fetch historical data:', error);
+      console.error('❌ Failed to fetch historical data:', error);
       throw error;
     }
   }
@@ -49,9 +66,11 @@ export class BinanceDataAdapter implements MarketDataAdapter {
     const wsInterval = interval;
     const streamName = `${wsSymbol}@kline_${wsInterval}`;
     
+    console.log('🔗 Subscribing to real-time data:', { symbol, interval, streamName });
     this.connectWebSocket(streamName, onMsg);
     
     return () => {
+      console.log('🔌 Unsubscribing from real-time data');
       this.disconnectWebSocket();
     };
   }
